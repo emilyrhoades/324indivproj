@@ -1,0 +1,87 @@
+---
+title: "Personal_Project"
+author: "Emily Rhoades"
+date: "2023-09-17"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("readr")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("readxl")
+```
+
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+#install.packages("readxl")
+library("readxl")
+
+#Read in data
+df <- read_excel("Comprehensive_Data_Sweden.xlsx")
+
+#Select desired columns
+selcData <- df[c("V5", "V85", "V86", "V90")]
+
+
+cleanData <- selcData %>% 
+  #Give variabes correct names
+  dplyr::rename("Happiness" = "V5",
+               "H_Income" = "V85",
+               "H_Size" = "V86",
+               "Class" = "V90") %>%
+  #Remove data with missing values
+  na.omit() %>%
+  #Find income per person in household
+  mutate(Income = H_Income/H_Size) %>%
+  #Remove not needed varaibles
+  subset(select = -c(H_Income, H_Size)) %>%
+  #8 means no data, remove this data
+  #Remove income outliers
+  subset(Happiness != 8 & Income < 50 & Class != 8)
+
+#Round income data
+cleanData$Income = cleanData$Income %>%
+  round()
+
+#Adjust for true value meaning (data is soted with 1 = 1,000)
+cleanData$Income = cleanData$Income * 1000
+
+detach("package:ggplot2", unload = TRUE)
+
+#Group together so that scatter plot and regression line can be made
+#Find mean happiness by income
+ avgData <- cleanData %>%
+   dplyr::group_by(Income) %>%
+   dplyr::mutate(Avg_Happiness = mean(Happiness))
+
+ #Find mean happiness by class
+avgData <- avgData %>%
+  dplyr::group_by(Class) %>%
+   dplyr::mutate(Avg_Happiness_Class = mean(Happiness))
+
+#Find mean income by class
+avgData <- avgData %>%
+  dplyr::group_by(Class) %>%
+   dplyr::mutate(Income_by_Class = mean(Income))
+ 
+#Create data frame
+
+df <- as.data.frame(avgData)
+
+```
+
+  
+
+
